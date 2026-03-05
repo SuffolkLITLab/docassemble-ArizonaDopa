@@ -1,0 +1,414 @@
+---
+include:
+  - docassemble.AssemblyLine:assembly_line.yml
+  - docassemble.ALAnyState:any_state.yml
+  - docassemble.LITLabTheme:main.yml
+---
+metadata:
+  title: Arizona Delegation of Parental Authority
+  short title: Parental authority delegation (Arizona)
+  description: |
+    Fill out the Arizona Power of Attorney Delegating Parental Powers form.
+  can_I_use_this_form: |
+    Use this form if you are a parent or guardian delegating parental powers for a minor child.
+  before_you_start: |
+    Before you start, gather:
+
+    * Full legal names and birthdates of each child
+    * Full legal name and address of the adult receiving authority
+    * Full legal name of one witness
+  when_you_are_finished: |
+    Sign the form in front of a witness and notary as required.
+  authors:
+    - Quinten Steenhuis
+  jurisdiction: NAM-US-AZ
+  review_date: 2026-03-04
+  maturity: production
+  landing_page_url: https://courtformsonline.org/
+  help_page_url: https://www.azcourts.gov/selfservicecenter
+  estimated_completion_minutes: 10
+  languages:
+    - en
+  LIST_topics:
+    - FA-00-00-00-00
+  tags:
+    - FA-00-00-00-00
+---
+code: |
+  AL_DEFAULT_COUNTRY = "US"
+---
+code: |
+  AL_DEFAULT_STATE = "AZ"
+---
+code: |
+  github_repo_name = "docassemble-ArizonaDopa"
+---
+code: |
+  al_form_type = "other"
+---
+sections:
+  - review_az_dopa: Review your answers
+---
+objects:
+  - children: ALPeopleList.using(ask_number=True)
+  - caregivers: ALPeopleList
+  - witnesses: ALPeopleList
+---
+code: |
+  users.there_are_any = True
+  users.there_is_another = False
+  caregivers.there_are_any = True
+  caregivers.there_is_another = False
+  witnesses.there_are_any = True
+  witnesses.there_is_another = False
+---
+id: interview_order_az_dopa
+code: |
+  allowed_courts = []
+  user_role = "plaintiff"
+  user_ask_role = "plaintiff"
+  nav.set_section("review_az_dopa")
+
+  eligibility_acknowledgement
+  users[0].name.first
+  caregivers[0].name.first
+  caregivers1_address_on_one_line
+  witnesses[0].name.first
+
+  children.target_number
+  children.gather()
+
+  is_delegating_all_parental_responsibilities
+  if not is_delegating_all_parental_responsibilities:
+    specific_parental_responsibilities_text_1
+
+  is_military_duration_selected
+  if is_military_duration_selected:
+    military_delegation_start_date
+    military_delegation_end_date
+  else:
+    delegation_start_date
+    delegation_end_date
+
+  principal_signature_date
+  interview_order_az_dopa = True
+---
+mandatory: True
+code: |
+  al_intro_screen
+  az_dopa_intro_ack
+  interview_order_az_dopa
+  az_dopa_preview_ack
+  signature_date
+  store_variables_snapshot(
+      persistent=True,
+      data={
+          "zip": showifdef("users[0].address.zip"),
+          "reached_interview_end": True,
+      },
+  )
+  az_dopa_download
+---
+id: az_dopa_intro
+continue button field: az_dopa_intro_ack
+question: Arizona Delegation of Parental Authority
+subquestion: |
+  This tool fills out the Arizona **Power of Attorney Delegating Parental Powers** form.
+
+  It does not file the form for you.
+---
+id: eligibility
+question: Before you start
+subquestion: |
+  This form is for a parent or guardian who wants to temporarily delegate parental powers.
+fields:
+  - I have legal authority to sign this form: eligibility_acknowledgement
+    datatype: yesno
+validation code: |
+  if not eligibility_acknowledgement:
+    validation_error("You must confirm you can legally sign this form.")
+---
+id: parent_information
+sets:
+  - users[0].name.first
+question: Parent information
+fields:
+  - code: |
+      users[0].name_fields()
+---
+id: caregiver_information
+sets:
+  - caregivers[0].name.first
+  - witnesses[0].name.first
+question: Adult receiving delegated authority
+fields:
+  - code: |
+      caregivers[0].name_fields()
+  - Full physical address (one line): caregivers1_address_on_one_line
+  - note: |
+      **Witness full legal name**
+  - code: |
+      witnesses[0].name_fields()
+---
+id: children_count
+sets:
+  - children.target_number
+question: Children on this form
+fields:
+  - How many children are listed?: children.target_number
+    datatype: integer
+    min: 1
+    max: 5
+---
+id: child_information
+sets:
+  - children[i].name.first
+  - children[i].birthdate
+question: |
+  Child ${ i + 1 } information
+fields:
+  - code: |
+      children[i].name_fields()
+  - Child's birthdate: children[i].birthdate
+    datatype: Birthdate
+---
+id: delegation_scope
+question: Delegated responsibilities
+fields:
+  - Do you delegate all parental responsibilities?: is_delegating_all_parental_responsibilities
+    datatype: yesno
+  - Specific responsibilities (line 1): specific_parental_responsibilities_text_1
+    show if:
+      variable: is_delegating_all_parental_responsibilities
+      is: False
+  - Specific responsibilities (line 2): specific_parental_responsibilities_text_2
+    show if:
+      variable: is_delegating_all_parental_responsibilities
+      is: False
+---
+id: delegation_timing
+question: Delegation dates
+subquestion: Choose one time period.
+fields:
+  - Is this for an active-duty military parent or guardian?: is_military_duration_selected
+    datatype: yesno
+  - Start date: delegation_start_date
+    datatype: date
+    show if:
+      variable: is_military_duration_selected
+      is: False
+  - End date: delegation_end_date
+    datatype: date
+    show if:
+      variable: is_military_duration_selected
+      is: False
+  - Military start date: military_delegation_start_date
+    datatype: date
+    show if:
+      variable: is_military_duration_selected
+      is: True
+  - Military end date: military_delegation_end_date
+    datatype: date
+    show if:
+      variable: is_military_duration_selected
+      is: True
+---
+id: principal_signature_date_screen
+sets:
+  - principal_signature_date
+question: Signature statement date
+fields:
+  - Signature date: principal_signature_date
+    datatype: date
+    default: ${ today() }
+---
+id: preview_az_dopa
+question: Preview your form before signing
+subquestion: |
+  ${ al_court_bundle.as_pdf(key='preview') }
+
+  ${ action_button_html(url_action('review_az_dopa'), label='Edit answers', color='info') }
+
+  Return to this tab when you are ready to continue.
+continue button field: az_dopa_preview_ack
+---
+id: review_screen_az_dopa
+event: review_az_dopa
+question: Review your answers
+review:
+  - Edit: users.revisit
+    button: |
+      **Parent**
+
+      % for item in users:
+        * ${ item }
+      % endfor
+  - Edit: caregivers.revisit
+    button: |
+      **Adult receiving authority**
+
+      % for item in caregivers:
+        * ${ item }
+      % endfor
+  - Edit: caregivers1_address_on_one_line
+    button: |
+      **Adult address**:
+      ${ caregivers1_address_on_one_line }
+  - Edit: witnesses.revisit
+    button: |
+      **Witness**
+
+      % for item in witnesses:
+        * ${ item }
+      % endfor
+  - Edit: children.revisit
+    button: |
+      **Children**
+
+      % for item in children:
+        * ${ item }
+      % endfor
+  - Edit: is_delegating_all_parental_responsibilities
+    button: |
+      **Delegating all responsibilities**:
+      ${ word(yesno(is_delegating_all_parental_responsibilities)) }
+  - Edit: is_military_duration_selected
+    button: |
+      **Active-duty military period**:
+      ${ word(yesno(is_military_duration_selected)) }
+  - Edit: principal_signature_date
+    button: |
+      **Signature date**:
+      ${ principal_signature_date }
+---
+id: edit_users
+continue button field: users.revisit
+question: Edit parent
+subquestion: |
+  ${ users.table }
+
+  ${ users.add_action() }
+---
+table: users.table
+rows: users
+columns:
+  - Name: |
+      row_item.name_full() if defined("row_item.name.first") else ""
+edit:
+  - name.first
+confirm: True
+---
+id: edit_caregivers
+continue button field: caregivers.revisit
+question: Edit adult receiving authority
+subquestion: |
+  ${ caregivers.table }
+
+  ${ caregivers.add_action() }
+---
+table: caregivers.table
+rows: caregivers
+columns:
+  - Name: |
+      row_item.name_full() if defined("row_item.name.first") else ""
+edit:
+  - name.first
+confirm: True
+---
+id: edit_witnesses
+continue button field: witnesses.revisit
+question: Edit witness
+subquestion: |
+  ${ witnesses.table }
+
+  ${ witnesses.add_action() }
+---
+table: witnesses.table
+rows: witnesses
+columns:
+  - Name: |
+      row_item.name_full() if defined("row_item.name.first") else ""
+edit:
+  - name.first
+confirm: True
+---
+id: edit_children
+continue button field: children.revisit
+question: Edit children
+subquestion: |
+  ${ children.table }
+
+  ${ children.add_action() }
+---
+table: children.table
+rows: children
+columns:
+  - Name: |
+      row_item.name_full() if defined("row_item.name.first") else ""
+  - Birthdate: |
+      row_item.birthdate if defined("row_item.birthdate") else ""
+edit:
+  - name.first
+  - birthdate
+confirm: True
+---
+id: az_dopa_download_screen
+event: az_dopa_download
+question: Your form is ready
+subquestion: |
+  ${ action_button_html(url_action('review_az_dopa'), label='Edit answers', color='info') }
+
+  ${ al_user_bundle.download_list_html() }
+
+  ${ al_user_bundle.send_button_html(show_editable_checkbox=False) }
+progress: 100
+---
+objects:
+  - az_dopa_next_steps: ALDocument.using(title="Instructions", filename="arizona_delegation_of_parental_authority_next_steps.docx", enabled=True, has_addendum=False)
+  - az_dopa_attachment: ALDocument.using(title="Arizona Delegation of Parental Authority", filename="arizona_delegation_of_parental_authority", enabled=True, has_addendum=False)
+---
+objects:
+  - al_user_bundle: ALDocumentBundle.using(elements=[az_dopa_next_steps, az_dopa_attachment], filename="arizona_delegation_of_parental_authority", title="Your forms", enabled=True)
+  - al_court_bundle: ALDocumentBundle.using(elements=[az_dopa_attachment], filename="arizona_delegation_of_parental_authority", title="Court forms", enabled=True)
+---
+attachment:
+  name: Post-interview Instructions
+  filename: arizona_delegation_of_parental_authority_next_steps
+  docx template file: arizona_delegation_of_parental_authority_next_steps.docx
+  variable name: az_dopa_next_steps[i]
+  skip undefined: True
+  tagged pdf: True
+---
+attachment:
+  name: Arizona Delegation of Parental Authority
+  filename: arizona_delegation_of_parental_authority
+  variable name: az_dopa_attachment[i]
+  skip undefined: True
+  pdf template file: arizona_dopa_labeled.pdf
+  fields:
+    - users1_name_full: ${ users[0] if len(users) > 0 else "" }
+    - children1_name_full: ${ children[0] if len(children) > 0 else "" }
+    - children2_name_full: ${ children[1] if len(children) > 1 else "" }
+    - children3_name_full: ${ children[2] if len(children) > 2 else "" }
+    - children4_name_full: ${ children[3] if len(children) > 3 else "" }
+    - children5_name_full: ${ children[4] if len(children) > 4 else "" }
+    - children1_birthdate: ${ children[0].birthdate.format() if len(children) > 0 and defined('children[0].birthdate') else "" }
+    - children2_birthdate: ${ children[1].birthdate.format() if len(children) > 1 and defined('children[1].birthdate') else "" }
+    - children3_birthdate: ${ children[2].birthdate.format() if len(children) > 2 and defined('children[2].birthdate') else "" }
+    - children4_birthdate: ${ children[3].birthdate.format() if len(children) > 3 and defined('children[3].birthdate') else "" }
+    - children5_birthdate: ${ children[4].birthdate.format() if len(children) > 4 and defined('children[4].birthdate') else "" }
+    - caregivers1_name_full: ${ caregivers[0] if len(caregivers) > 0 else "" }
+    - caregivers1_address_on_one_line: ${ caregivers1_address_on_one_line }
+    - is_delegating_all_parental_responsibilities: ${ is_delegating_all_parental_responsibilities }
+    - is_delegating_specific_parental_responsibilities: ${ not is_delegating_all_parental_responsibilities }
+    - specific_parental_responsibilities_text_1: ${ specific_parental_responsibilities_text_1 if defined('specific_parental_responsibilities_text_1') else "" }
+    - specific_parental_responsibilities_text_2: ${ specific_parental_responsibilities_text_2 if defined('specific_parental_responsibilities_text_2') else "" }
+    - delegation_start_date: ${ delegation_start_date.format() if (not is_military_duration_selected) and defined('delegation_start_date') else "" }
+    - is_standard_duration_selected: ${ not is_military_duration_selected }
+    - delegation_end_date: ${ delegation_end_date.format() if (not is_military_duration_selected) and defined('delegation_end_date') else "" }
+    - is_military_duration_selected: ${ is_military_duration_selected }
+    - military_delegation_start_date: ${ military_delegation_start_date.format() if is_military_duration_selected and defined('military_delegation_start_date') else "" }
+    - military_delegation_end_date: ${ military_delegation_end_date.format() if is_military_duration_selected and defined('military_delegation_end_date') else "" }
+    - principal_signature_date_day: ${ principal_signature_date.format("d") }
+    - principal_signature_date_month_year: ${ principal_signature_date.format("MMMM yyyy") }
+    - witnesses1_name_full: ${ witnesses[0] if len(witnesses) > 0 else "" }
